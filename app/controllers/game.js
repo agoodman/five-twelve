@@ -4,6 +4,76 @@ var cells;
 var labels;
 var score;
 
+var addTile = function() {
+	var found = false;
+	var x, y;
+	while (!found) {
+		x = Math.floor(Math.random() * 4);
+		y = Math.floor(Math.random() * 4);
+		if (board[x][y] == 0) {
+			found = true;
+		}
+	}
+
+	board[x][y] = 2;
+	labels[x][y].text = board[x][y];
+	
+	score += 2;
+};
+
+var canAddTile = function() {
+	for (var i = 0; i < 4; i++) {
+		for (var j = 0; j < 4; j++) {
+			if (board[i][j] == 0) {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+var canCollapseTiles = function() {
+	for(var i=0;i<4;i++) {
+		for(var j=0;j<3;j++) {
+			if( board[i][j]!=0 && board[i][j]==board[i][j+1] ) {
+				return true;
+			}
+		}
+	}
+	for(var j=0;j<4;j++) {
+		for(var i=0;i<3;i++) {
+			if( board[i][j]!=0 && board[i][j]==board[i+1][j] ) {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+var collapseRows = function() {
+	for (var i = 0; i < 4; i++) {
+		for (var j = 0; j < 3; j++) {
+			if (board[i][j] != 0 && board[i][j] == board[i][j + 1]) {
+				board[i][j] *= 2;
+				board[i][j + 1] = 0;
+				score += board[i][j];
+			}
+		}
+	}
+};
+
+var collapseCols = function() {
+	for (var j = 0; j < 4; j++) {
+		for (var i = 0; i < 3; i++) {
+			if (board[i][j] != 0 && board[i][j] == board[i+1][j]) {
+				board[i][j] *= 2;
+				board[i+1][j] = 0;
+				score += board[i][j];
+			}
+		}
+	}
+};
+
 var initBoard = function() {
 	$.board.removeAllChildren();
 	board = [];
@@ -33,33 +103,49 @@ var initBoard = function() {
 			$.board.add(cells[i][j]);
 		}
 	}
-	var x = Math.floor(Math.random() * 4);
-	var y = Math.floor(Math.random() * 4);
-	Ti.API.info("assigning random " + x + "," + y);
-	board[x][y] = 2;
-	labels[x][y].text = board[x][y];
+	addTile();
 };
 
-var isRowEmpty = function(aRow) {
+var isRowEmpty = function(aRow, aCol, aDir) {
 	var isEmpty = true;
-	for (var j = 0; j < 4; j++) {
-		if (board[aRow][j] > 0) {
-			isEmpty = false;
-			break;
+	if (aDir) {
+		for (var j = aCol || 0; j < 4; j++) {
+			if (board[aRow][j] > 0) {
+				isEmpty = false;
+				break;
+			}
 		}
+		return isEmpty;
+	} else {
+		for (var j = aCol || 3; j >= 0; j--) {
+			if (board[aRow][j] > 0) {
+				isEmpty = false;
+				break;
+			}
+		}
+		return isEmpty;
 	}
-	return isEmpty;
 };
 
-var isColEmpty = function(aCol) {
+var isColEmpty = function(aCol, aRow, aDir) {
 	var isEmpty = true;
-	for (var i = 0; i < 4; i++) {
-		if (board[i][aCol] > 0) {
-			isEmpty = false;
-			break;
+	if (aDir) {
+		for (var i = aRow || 0; i < 4; i++) {
+			if (board[i][aCol] > 0) {
+				isEmpty = false;
+				break;
+			}
 		}
+		return isEmpty;
+	} else {
+		for (var i = aRow || 3; i >= 0; i--) {
+			if (board[i][aCol] > 0) {
+				isEmpty = false;
+				break;
+			}
+		}
+		return isEmpty;
 	}
-	return isEmpty;
 };
 
 var printBoard = function() {
@@ -102,11 +188,11 @@ var settleDown = function() {
 		}
 
 		// shift non-zero values to the bottom
-		for (var i = 3; i >=0; i--) {
+		for (var i = 3; i > 0; i--) {
 			var attempts = 0;
 			while (attempts++ < 4 && board[i][j] == 0) {
 				Ti.API.info("shifting rows in " + j + " above " + i + " downward");
-				for (var k = i; k >0; k--) {
+				for (var k = i; k > 0; k--) {
 					Ti.API.info("shift " + (k - 1) + "," + j + "(" + board[k-1][j] + ") to " + k + "," + j);
 					board[k][j] = board[k-1][j];
 					board[k-1][j] = 0;
@@ -115,7 +201,6 @@ var settleDown = function() {
 			}
 		}
 	}
-	renderBoard();
 };
 
 var settleLeft = function() {
@@ -131,8 +216,7 @@ var settleLeft = function() {
 
 		// shift non-zero values to the left
 		for (var j = 0; j < 4; j++) {
-			var attempts = 0;
-			while (attempts++ < 4 && board[i][j] == 0) {
+			while (!isRowEmpty(i, j + 1, true) && board[i][j] == 0) {
 				Ti.API.info("shifting cols in " + i + " right of " + j + " to the left");
 				for (var k = j; k < 3; k++) {
 					Ti.API.info("shift " + i + "," + (k + 1) + "(" + board[i][k + 1] + ") to " + i + "," + k);
@@ -143,7 +227,6 @@ var settleLeft = function() {
 			}
 		}
 	}
-	renderBoard();
 };
 
 var settleRight = function() {
@@ -158,21 +241,19 @@ var settleRight = function() {
 		}
 
 		// shift non-zero values to the right
-		for (var j = 3; j >= 0; j--) {
+		for (var j = 3; j > 0; j--) {
 			var attempts = 0;
-			while (attempts++ < 4 && board[i][j] == 0) {
+			while (attempts++ < 4 && !isRowEmpty(i, j - 1, false) && board[i][j] == 0) {
 				Ti.API.info("shifting cols in " + i + " left of " + j + " to the right");
-				for (var k = j; k >= 0; k--) {
+				for (var k = j; k > 0; k--) {
 					Ti.API.info("shift " + i + "," + (k - 1) + "(" + board[i][k - 1] + ") to " + i + "," + k);
 					board[i][k] = board[i][k - 1];
-					board[i][k-1] = 0;
+					board[i][k - 1] = 0;
 					printBoard();
 				}
 			}
 		}
 	}
-	renderBoard();
-
 };
 
 var settleUp = function() {
@@ -200,7 +281,6 @@ var settleUp = function() {
 			}
 		}
 	}
-	renderBoard();
 };
 
 initBoard();
@@ -209,13 +289,29 @@ renderBoard();
 
 $.board.addEventListener('swipe', function(e) {
 	Ti.API.info("swipe " + e.direction);
+	if (canAddTile()) {
+		addTile();
+	} else if (!canCollapseTiles()) {
+		Ti.API.info("game over");
+		alert("game over");
+		return;
+	}
 	if (e.direction == 'left') {
+		settleLeft();
+		collapseRows();
 		settleLeft();
 	} else if (e.direction == 'right') {
 		settleRight();
+		collapseRows();
+		settleRight();
 	} else if (e.direction == 'up') {
+		settleUp();
+		collapseCols();
 		settleUp();
 	} else if (e.direction == 'down') {
 		settleDown();
+		collapseCols();
+		settleDown();
 	}
+	renderBoard();
 });
