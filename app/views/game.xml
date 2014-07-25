@@ -1,0 +1,12 @@
+<Alloy>
+	<Window id="game">
+		<View id="head">
+			<View class="row">
+				<Label id="lblLogo">FiveTwelve</Label>
+				<Label>Score:</Label>
+				<Label id="lblScore"/>
+			</View>
+		</View>
+		<View id="board" />
+	</Window>
+</Alloy>

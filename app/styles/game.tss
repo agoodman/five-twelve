@@ -1,0 +1,25 @@
+"#head" : {
+	top: 0,
+	left: 0,
+	right: 0,
+	height: 100,
+	backgroundColor: "#f4f4f4",
+}
+
+"#board" : {
+	top: 100,
+	left: 0,
+	right: 0,
+	bottom: 0,
+	backgroundColor: "#efefef",
+	layout: "horizontal",
+}
+
+"#lblLogo" : {
+	width: 160,
+}
+
+".row" : {
+	top: 25,
+	layout: "horizontal",
+}
